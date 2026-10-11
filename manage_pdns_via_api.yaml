@@ -1,0 +1,89 @@
+---
+- name: Sync PowerDNS Forward, Reverse, and CNAME Records for brightlab.com
+  hosts: all_servers
+  gather_facts: false
+
+  vars:
+    pdns_api_url: "{{ lookup('ansible.builtin.env', 'PDNS_API_URL') }}"
+    pdns_api_key: "{{ lookup('ansible.builtin.env', 'PDNS_API_KEY') }}"
+    
+    # Core Infrastructure Mappings (A & PTR)
+    dns_records:
+      - { name: "brightlab.com", ip: "192.168.1.174" }
+      - { name: "pdns.brightlab.com", ip: "192.168.1.174" }
+      - { name: "utils-server.brightlab.com", ip: "192.168.1.177" }
+
+    # Alias / Canonical Mappings (CNAME)
+    cname_records:
+      - { alias: "server.brightlab.com", target: "utils-server.brightlab.com" }
+
+  tasks:
+    # 1. Forward DNS Zone (A Records)
+    - name: Ensure Forward A records exist under brightlab.com
+      ansible.builtin.uri:
+        url: "{{ pdns_api_url }}/servers/localhost/zones/brightlab.com"
+        method: PATCH
+        status_code: 204
+        headers:
+          X-API-Key: "{{ pdns_api_key }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          rrsets:
+            - name: "{{ item.name }}."
+              type: "A"
+              ttl: 3600
+              changetype: REPLACE
+              records:
+                - content: "{{ item.ip }}"
+                  disabled: false
+      loop: "{{ dns_records }}"
+      run_once: true
+      delegate_to: localhost
+
+    # 2. Reverse DNS Zone (PTR Records)
+    - name: Ensure Reverse PTR records exist
+      ansible.builtin.uri:
+        url: "{{ pdns_api_url }}/servers/localhost/zones/{{ '.'.join(item.ip.split('.')[:3][::-1]) }}.in-addr.arpa"
+        method: PATCH
+        status_code: 204
+        headers:
+          X-API-Key: "{{ pdns_api_key }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          rrsets:
+            - name: "{{ item.ip.split('.')[3] }}.{{ '.'.join(item.ip.split('.')[:3][::-1]) }}.in-addr.arpa."
+              type: "PTR"
+              ttl: 3600
+              changetype: REPLACE
+              records:
+                - content: "{{ item.name }}."
+                  disabled: false
+      loop: "{{ dns_records }}"
+      run_once: true
+      delegate_to: localhost
+
+    # 3. DNS Alias Zone (CNAME Records)
+    - name: Ensure CNAME records exist under brightlab.com
+      ansible.builtin.uri:
+        url: "{{ pdns_api_url }}/servers/localhost/zones/brightlab.com"
+        method: PATCH
+        status_code: 204
+        headers:
+          X-API-Key: "{{ pdns_api_key }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          rrsets:
+            - name: "{{ item.alias }}."
+              type: "CNAME"
+              ttl: 3600
+              changetype: REPLACE
+              records:
+                - content: "{{ item.target }}."
+                  disabled: false
+      loop: "{{ cname_records }}"
+      run_once: true
+      delegate_to: localhost
+
