@@ -1,4 +1,4 @@
-name: Deploy DNS Records for brightly.com
+name: PowerDNS Sync Pipeline
 
 on:
   push:
@@ -7,32 +7,29 @@ on:
     branches: [ main ]
 
 jobs:
-  ansible-dns-pipeline:
-    #runs-on: ubuntu-latest
+  dns-sync:
     runs-on: dns-gitops
+
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - name: Checkout Code Base
+        uses: actions/checkout@v4.2.2
 
-      - name: Set up Python & Ansible
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Ansible & Requirements
+      - name: Install Local Ansible Requirements
         run: |
-          python -m pip install --upgrade pip
-          pip install ansible jmespath
-          ansible-galaxy collection install community.general
+          ansible-galaxy collection install community.general --force
 
-      - name: Run Dry-Run (Check Mode) on Pull Request
+      - name: Verify Configuration (Dry Run)
         if: github.event_name == 'pull_request'
         run: |
-          ansible-playbook -i inventory.ini manage_dns.yml --check \
-            --extra-vars "pdns_api_key=${{ secrets.PDNS_API_KEY }} pdns_api_url=${{ secrets.PDNS_API_URL }}"
+          ansible-playbook -i hosts.ini manage_pdns.yaml --check
+        env:
+          PDNS_API_URL: ${{ secrets.PDNS_API_URL }}
+          PDNS_API_KEY: ${{ secrets.PDNS_API_KEY }}
 
-      - name: Apply Live Changes on Merge to Main
+      - name: Apply Live Records to PowerDNS Engine
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          ansible-playbook -i inventory.ini manage_dns.yml \
-            --extra-vars "pdns_api_key=${{ secrets.PDNS_API_KEY }} pdns_api_url=${{ secrets.PDNS_API_URL }}"
+          ansible-playbook -i hosts.ini manage_pdns.yaml
+        env:
+          PDNS_API_URL: ${{ secrets.PDNS_API_URL }}
+          PDNS_API_KEY: ${{ secrets.PDNS_API_KEY }}
