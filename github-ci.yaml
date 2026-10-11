@@ -1,0 +1,37 @@
+name: Deploy DNS Records for brightly.com
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  ansible-dns-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python & Ansible
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible & Requirements
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible jmespath
+          ansible-galaxy collection install community.general
+
+      - name: Run Dry-Run (Check Mode) on Pull Request
+        if: github.event_name == 'pull_request'
+        run: |
+          ansible-playbook -i inventory.ini manage_dns.yml --check \
+            --extra-vars "pdns_api_key=${{ secrets.PDNS_API_KEY }} pdns_api_url=${{ secrets.PDNS_API_URL }}"
+
+      - name: Apply Live Changes on Merge to Main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          ansible-playbook -i inventory.ini manage_dns.yml \
+            --extra-vars "pdns_api_key=${{ secrets.PDNS_API_KEY }} pdns_api_url=${{ secrets.PDNS_API_URL }}"
