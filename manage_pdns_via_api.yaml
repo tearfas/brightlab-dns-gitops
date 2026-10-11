@@ -1,13 +1,13 @@
 ---
 - name: Sync PowerDNS Forward, Reverse, and CNAME Records for brightlab.com
-  hosts: all_servers
+  hosts: nameserver
   gather_facts: false
 
   vars:
-    pdns_api_url: "{{ lookup('ansible.builtin.env', 'PDNS_API_URL') }}"
-    pdns_api_key: "{{ lookup('ansible.builtin.env', 'PDNS_API_KEY') }}"
-    
-    # Core Infrastructure Mappings (A & PTR)
+    #pdns_api_url: "{{ lookup('ansible.builtin.env', 'PDNS_API_URL') }}"
+    #pdns_api_key: "{{ lookup('ansible.builtin.env', 'PDNS_API_KEY') }}"
+    pdns_api_url: "{{ lookup('ansible.builtin.env', 'PDNS_API_URL') | default('http://192.168.1', true) }}"
+    pdns_api_key: "{{ lookup('ansible.builtin.env', 'PDNS_API_KEY') | default('q1vTI7auG/UiPql/lCC6sEPyQo++meSDtWHFRE7wPD0=', true) }}"
     dns_records:
       - { name: "brightlab.com", ip: "192.168.1.174" }
       - { name: "pdns.brightlab.com", ip: "192.168.1.174" }
