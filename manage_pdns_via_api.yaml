@@ -15,7 +15,7 @@
 
     # Alias / Canonical Mappings (CNAME)
     cname_records:
-      - { alias: "server.brightlab.com", target: "utils-server.brightlab.com" }
+      - { alias: "utility.brightlab.com", target: "utils-server.brightlab.com" }
 
   tasks:
     # 1. Forward DNS Zone (A Records)
