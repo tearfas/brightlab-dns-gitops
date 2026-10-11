@@ -14,10 +14,10 @@ jobs:
       - name: Checkout Code Base
         uses: actions/checkout@v4.2.2
 
-      # Force galaxy to download the collection directly into your active workspace directory
+      # FORCE INSTALL VERSION 9.5.0 TO MATCH ANSIBLE 2.16.18 NATIVELY
       - name: Install Local Ansible Requirements
         run: |
-          ansible-galaxy collection install community.general -p ./collections --force
+          ansible-galaxy collection install community.general:9.5.0 -p ./collections --force
 
       - name: Verify Configuration (Dry Run)
         if: github.event_name == 'pull_request'
@@ -26,7 +26,6 @@ jobs:
         env:
           PDNS_API_URL: ${{ secrets.PDNS_API_URL }}
           PDNS_API_KEY: ${{ secrets.PDNS_API_KEY }}
-          ANSIBLE_COLLECTIONS_PATH: ./collections  # Forces Ansible to look inside the workspace
 
       - name: Apply Live Records to PowerDNS Engine
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -35,4 +34,3 @@ jobs:
         env:
           PDNS_API_URL: ${{ secrets.PDNS_API_URL }}
           PDNS_API_KEY: ${{ secrets.PDNS_API_KEY }}
-          ANSIBLE_COLLECTIONS_PATH: ./collections  # Forces Ansible to look inside the workspace
