@@ -1,0 +1,73 @@
+---
+- name: Sync PowerDNS Forward and Reverse Records for brightlab.com
+  hosts: pdns.brightlab.com
+  gather_facts: false
+  collections:
+    - community.general
+
+  vars:
+    # 1. Read sensitive API endpoints and tokens securely from the pipeline environment
+    pdns_api_url: "{{ lookup('ansible.builtin.env', 'PDNS_API_URL') }}"
+    pdns_api_key: "{{ lookup('ansible.builtin.env', 'PDNS_API_KEY') }}"
+
+    # 2. Your exact FQDN infrastructure mappings
+    dns_records:
+      - { name: "brightlab.com", ip: "192.168.1.174" }
+      - { name: "pdns.brightlab.com", ip: "192.168.1.174" }
+      - { name: "utils-server.brightlab.com", ip: "192.168.1.177" }
+
+  tasks:
+    # 3. Security Assertions to block execution if secrets aren't masked/provided
+    - name: Assert that API credentials are securely injected
+      ansible.builtin.assert:
+        that:
+          - pdns_api_url is defined and pdns_api_url | length > 0
+          - pdns_api_key is defined and pdns_api_key | length > 0
+        fail_msg: "Pipeline Security Error: PDNS_API_URL or PDNS_API_KEY environment variables are missing!"
+
+    # 4. Handle Forward DNS Entries (A Records)
+    - name: Ensure Forward A records exist under brightlab.com
+      community.general.pdns_record:
+        pdns_server: "{{ pdns_api_url }}"
+        pdns_api_key: "{{ pdns_api_key }}"
+        zone: "brightlab.com"
+        name: "{{ item.name }}"
+        type: "A"
+        ttl: 3600
+        content: "{{ item.ip }}"
+        state: present
+      run_once: true
+      delegate_to: localhost
+      loop: "{{ dns_records }}"
+
+    # 5. Handle Reverse DNS Entries (PTR Records)
+    - name: Ensure Reverse PTR records exist
+      community.general.pdns_record:
+        pdns_server: "{{ pdns_api_url }}"
+        pdns_api_key: "{{ pdns_api_key }}"
+        # Automatically targets the 1.168.192.in-addr.arpa zone
+        zone: "{{ '.'.join(item.ip.split('.')[:3][::-1]) }}.in-addr.arpa"
+        # Dynamically matches the exact IP octet (174 or 177) to the FQDN target
+        name: "{{ item.ip.split('.') }}.{{ '.'.join(item.ip.split('.')[:3][::-1]) }}.in-addr.arpa"
+        type: "PTR"
+        ttl: 3600
+        content: "{{ item.name }}."  # Absolute FQDN trailing dot
+        state: present
+      run_once: true
+      delegate_to: localhost
+      loop: "{{ dns_records }}"
+
+    # Handle DNS Alias Entries (CNAME Records)
+    - name: Ensure CNAME records exist under brightlab.com
+      community.general.pdns_record:
+        pdns_server: "{{ pdns_api_url }}"
+        pdns_api_key: "{{ pdns_api_key }}"
+        zone: "brightlab.com"
+        name: "{{ item.alias }}"
+        type: "CNAME"
+        ttl: 3600
+        content: "{{ item.target }}."
+        state: present
+      run_once: true
+      delegate_to: localhost
+      loop: "{{ dns_records }}"
