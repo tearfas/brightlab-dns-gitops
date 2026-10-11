@@ -37,7 +37,7 @@
         content: "{{ item.ip }}"
         state: present
       run_once: true
-      #delegate_to: localhost
+      delegate_to: localhost
       loop: "{{ dns_records }}"
 
     # 5. Handle Reverse DNS Entries (PTR Records)
@@ -54,7 +54,7 @@
         content: "{{ item.name }}."  # Absolute FQDN trailing dot
         state: present
       run_once: true
-      #delegate_to: localhost
+      delegate_to: localhost
       loop: "{{ dns_records }}"
 
     # Handle DNS Alias Entries (CNAME Records)
@@ -69,5 +69,5 @@
         content: "{{ item.target }}."
         state: present
       run_once: true
-      #delegate_to: localhost
+      delegate_to: localhost
       loop: "{{ dns_records }}"
