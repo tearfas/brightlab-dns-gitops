@@ -8,7 +8,7 @@ on:
 
 jobs:
   dns-sync:
-    runs-on: brightlab-internal
+    runs-on: dns-gitops
 
     steps:
       - name: Checkout Code Base
