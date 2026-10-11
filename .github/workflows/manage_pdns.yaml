@@ -1,6 +1,6 @@
 ---
 - name: Sync PowerDNS Forward and Reverse Records for brightlab.com
-  hosts: nameserver
+  hosts: pdns.brightlab.com
   gather_facts: false
   collections:
     - community.general
