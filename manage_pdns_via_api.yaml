@@ -1,6 +1,6 @@
 ---
 - name: Sync PowerDNS Forward, Reverse, and CNAME Records for brightlab.com
-  hosts: nameserver
+  hosts: all_servers
   gather_facts: false
 
   vars:
