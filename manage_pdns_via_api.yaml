@@ -20,9 +20,9 @@
   tasks:
     - name: Debug Environment Variable Status Safely
       ansible.builtin.debug:
-        msg: 
-          - "API URL Length: {{ pdns_api_url }}"
-          - "API Key Length: {{ pdns_api_key }}"
+        msg: |
+          - "API URL Length: {{ pdns_api_url }} "
+          - "API Key Length: {{ pdns_api_key }} "
           
     # 1. Forward DNS Zone (A Records)
     - name: Ensure Forward A records exist under brightlab.com
